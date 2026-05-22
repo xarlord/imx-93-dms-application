@@ -20,7 +20,7 @@ logger = logging.getLogger('dms.capture')
 
 PIPELINE_CAPTURE: str = (
     "v4l2src device={device} ! "
-    "video/x-raw,format=UYVY,width={width},height={height},framerate={fps}/1 ! "
+    "video/x-raw,format=YUY2,width={width},height={height},framerate={fps}/1 ! "
     "imxvideoconvert_pxp ! "
     "video/x-raw,format=BGRx ! "
     "appsink name=sink max-buffers=2 drop=true emit-signals=true"
@@ -35,12 +35,6 @@ class CameraCapture:
     """
 
     def __init__(self, config: dict[str, Any] | None = None) -> None:
-        """Initializes the camera capture with optional configuration.
-
-        Args:
-            config: Optional dict with keys 'device', 'width', 'height',
-                'target_fps'. Defaults are /dev/video0, 1280x800 @ 25 fps.
-        """
         self.device: str = (config or {}).get('device', '/dev/video0')
         self.width: int = (config or {}).get('width', 1280)
         self.height: int = (config or {}).get('height', 800)
@@ -53,6 +47,16 @@ class CameraCapture:
         self._frame_count: int = 0
         self._running: bool = False
         self._frame_queue: queue.Queue[NDArray[np.uint8]] = queue.Queue(maxsize=2)
+
+        bgr_gains = (config or {}).get('white_balance', None)
+        if bgr_gains and len(bgr_gains) == 3:
+            gains = bgr_gains
+        else:
+            gains = [1.5, 1.0, 0.75]
+        lut = np.arange(256, dtype=np.float32)
+        self._wb_lut: NDArray[np.uint8] = np.stack([
+            np.clip(lut * gains[i], 0, 255).astype(np.uint8) for i in range(3)
+        ], axis=-1)
 
     def start(self, on_frame: Callable[[NDArray[np.uint8]], None] | None = None) -> None:
         """Start the capture pipeline.
@@ -146,6 +150,9 @@ class CameraCapture:
         try:
             frame: NDArray[np.uint8] = np.frombuffer(info.data, dtype=np.uint8)
             frame = frame.reshape((self.height, self.width, 4)).copy()
+            bgr = frame[:, :, :3]
+            for c in range(3):
+                bgr[:, :, c] = self._wb_lut[:, c].take(bgr[:, :, c])
             self._frame_count += 1
 
             try:
