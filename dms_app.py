@@ -124,12 +124,18 @@ class DMSApp:
 
                 if self._frame_count % LOG_EVERY == 0:
                     lat_status = "OK" if e2e_ms < LATENCY_WARN_MS else "SLOW"
+                    face = results.get('face_detected', False)
+                    bbox = results.get('head_bbox')
+                    lm = results.get('landmarks')
                     logger.info(
-                        'Frame %d | e2e=%.0fms [%s] | pipeline=%.0ffps | KSS=%d | %s',
+                        'Frame %d | e2e=%.0fms [%s] | pipeline=%.0ffps | KSS=%d | %s | face=%s bbox=%s lm=%d',
                         self._frame_count, e2e_ms, lat_status,
                         proc_fps,
                         results.get('kss', 0),
-                        results.get('warning_level', 'none'))
+                        results.get('warning_level', 'none'),
+                        'Y' if face else 'N',
+                        [int(v) for v in bbox] if bbox else '-',
+                        len(lm) if lm else 0)
 
             except (RuntimeError, ValueError) as e:
                 logger.error('Frame processing error: %s', e, exc_info=True)

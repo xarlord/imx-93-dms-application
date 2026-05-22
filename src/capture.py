@@ -48,15 +48,30 @@ class CameraCapture:
         self._running: bool = False
         self._frame_queue: queue.Queue[NDArray[np.uint8]] = queue.Queue(maxsize=2)
 
-        bgr_gains = (config or {}).get('white_balance', None)
-        if bgr_gains and len(bgr_gains) == 3:
-            gains = bgr_gains
-        else:
-            gains = [1.5, 1.0, 0.75]
+        self._target_brightness: float = 100.0
+        self._wb_alpha: float = 0.05
+        self._current_gains: NDArray[np.float32] = np.array([1.4, 1.0, 0.8], dtype=np.float32)
+        self._rebuild_lut()
+
+    def _rebuild_lut(self) -> None:
         lut = np.arange(256, dtype=np.float32)
         self._wb_lut: NDArray[np.uint8] = np.stack([
-            np.clip(lut * gains[i], 0, 255).astype(np.uint8) for i in range(3)
+            np.clip(lut * self._current_gains[i], 0, 255).astype(np.uint8) for i in range(3)
         ], axis=-1)
+
+    def _adapt_gains(self, frame: NDArray[np.uint8]) -> None:
+        bgr = frame[:, :, :3]
+        means = bgr.mean(axis=(0, 1)).astype(np.float32)
+        avg_brightness = means.mean()
+        if avg_brightness < 1.0:
+            return
+        for c in range(3):
+            target_c = self._target_brightness * (means[c] / avg_brightness)
+            if means[c] > 1.0:
+                ideal_gain = target_c / means[c]
+                self._current_gains[c] += self._wb_alpha * (ideal_gain - self._current_gains[c])
+                self._current_gains[c] = np.clip(self._current_gains[c], 0.5, 3.0)
+        self._rebuild_lut()
 
     def start(self, on_frame: Callable[[NDArray[np.uint8]], None] | None = None) -> None:
         """Start the capture pipeline.
@@ -150,6 +165,8 @@ class CameraCapture:
         try:
             frame: NDArray[np.uint8] = np.frombuffer(info.data, dtype=np.uint8)
             frame = frame.reshape((self.height, self.width, 4)).copy()
+            if self._frame_count % 5 == 0:
+                self._adapt_gains(frame)
             bgr = frame[:, :, :3]
             for c in range(3):
                 bgr[:, :, c] = self._wb_lut[:, c].take(bgr[:, :, c])

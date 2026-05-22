@@ -100,10 +100,10 @@ class LandmarkDetector:
 
         # Run inference
         outputs = self.model.predict(input_data)
-        if not outputs or len(outputs) == 0:
+        if not outputs or len(outputs) < 2:
             return None
 
-        raw = outputs[0]
+        raw = outputs[-1]
         if raw.ndim == 3:
             raw = raw[0]
         raw = raw.astype(np.float32)
