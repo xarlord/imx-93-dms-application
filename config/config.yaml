@@ -1,0 +1,88 @@
+dms:
+  camera:
+    device: "/dev/video0"
+    width: 1280
+    height: 800
+    format: "YUYV"
+    target_fps: 25
+
+  vehicle:
+    speed_source: "simulate"  # "can", "simulate", "constant"
+    simulated_speed: 70  # km/h — set to target speed for dev; 0 = fail-closed (gates off)
+    ddaw_activation_speed: 70
+    addw_activation_speed: 20
+
+  models:
+    # GoPoint DMS pre-quantized TFLite models (MediaPipe-based)
+    head_detector: "/opt/gopoint-apps/downloads/face_detection_ptq_vela.tflite"
+    landmark: "/opt/gopoint-apps/downloads/face_landmark_ptq_vela.tflite"
+    iris: "/opt/gopoint-apps/downloads/iris_landmark_ptq_vela.tflite"
+    # Input sizes for each model
+    head_detector_input: [128, 128]    # BlazeFace: 128x128
+    landmark_input: [192, 192]         # Face landmark: 192x192
+    iris_input: [64, 64]              # Iris landmark: 64x64
+    # Smoking/calling (optional, from GoPoint demo on board)
+    smoking_calling: "/opt/gopoint-apps/downloads/yolov4_tiny_smk_call.tflite"
+    run_smoking_calling: false
+    smoking_calling_every_n: 3
+
+  gaze:
+    yaw_weight: 32.0
+    pitch_weight: 45.0
+    ppd_yaw: 5.0
+    ppd_pitch: 5.0
+    stabilization_alpha_fixation: 0.3
+    stabilization_alpha_saccade: 0.8
+    saccade_velocity_threshold: 15.0
+    zones_file: "zones.xml"
+
+  thresholds:
+    ear_close: 0.10
+    ear_blink: 0.19
+    yawn_mar: 0.5
+    yawn_min_duration: 0.5
+    head_yaw_max: 25.0
+    head_pitch_max: 20.0
+    perclos_window_sec: 60
+    perclos_mild: 0.10
+    perclos_severe: 0.20
+
+  timing:
+    addw_high_speed_nominal: 3.5
+    addw_high_speed_buffer: 5.0
+    addw_high_speed_fn_deadline: 4.0
+    addw_low_speed_nominal: 6.0
+    addw_low_speed_buffer: 7.5
+    addw_low_speed_fn_deadline: 6.5
+    saccade_tolerance_ms: 50
+    vats_window_sec: 30
+    vats_threshold_sec: 10.0
+
+  warnings:
+    escalation_advisory_sec: 3.0
+    escalation_escalating_sec: 5.0
+    escalation_intervention_sec: 5.0
+    acoustic_file_advisory: "sounds/advisory.wav"
+    acoustic_file_escalating: "sounds/escalating.wav"
+    acoustic_file_intervention: "sounds/intervention.wav"
+    acoustic_file_emergency: "sounds/emergency.wav"
+
+  display:
+    width: 1280
+    height: 800
+    fullscreen: true
+    show_landmarks: true
+    show_gaze_ray: true
+    show_zones: false
+
+  calibration:
+    enabled: true
+    auto_start: true
+    points: 9
+    duration_per_point: 2.0
+    learning_period_sec: 600
+
+  logging:
+    level: "INFO"
+    file: "/tmp/dms.log"
+    metrics_csv: "/tmp/dms_metrics.csv"

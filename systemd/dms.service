@@ -1,0 +1,18 @@
+[Unit]
+Description=DMS Driver Monitoring System
+After=weston.service camera-setup.service
+Requires=weston.service camera-setup.service
+
+[Service]
+Type=simple
+User=root
+Environment=XDG_RUNTIME_DIR=/run/user/0
+Environment=WAYLAND_DISPLAY=wayland-0
+ExecStart=/usr/bin/python3 /opt/dms/dms_app.py --config /opt/dms/config/config.yaml
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
