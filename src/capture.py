@@ -20,7 +20,7 @@ logger = logging.getLogger('dms.capture')
 
 PIPELINE_CAPTURE: str = (
     "v4l2src device={device} ! "
-    "video/x-raw,format=YUY2,width={width},height={height},framerate={fps}/1 ! "
+    "video/x-raw,format=UYVY,width={width},height={height},framerate={fps}/1 ! "
     "imxvideoconvert_pxp ! "
     "video/x-raw,format=BGRx ! "
     "appsink name=sink max-buffers=2 drop=true emit-signals=true"

@@ -290,10 +290,10 @@ class DMSPipeline:
         results['head_confidence'] = best.get('confidence', 0)
 
         head_crop: NDArray[np.uint8]
-        crop_info: dict[str, Any]
-        head_crop, crop_info = crop_with_padding(frame, bbox, padding_ratio=0.20)
+        crop_rect: tuple[int, int, int, int]
+        head_crop, crop_rect = crop_with_padding(frame, bbox, padding_ratio=0.20)
 
-        landmarks: list[tuple[float, float]] | None = self.landmark_det.detect(head_crop, bbox)
+        landmarks: list[tuple[float, float]] | None = self.landmark_det.detect(head_crop, list(crop_rect))
         if landmarks is None:
             self._update_behavioral_no_face(results, now, dt)
             results['warning_level'] = self.warning.level
